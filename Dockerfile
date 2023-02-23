@@ -10,12 +10,14 @@ ENV SESSIONNAME="Ark Docker" \
     BACKUPONSTART=1 \
     SERVERPORT=27015 \
     STEAMPORT=7777 \
+    RCONPORT=32330 \
     BACKUPONSTOP=1 \
     WARNONSTOP=1 \
     UID=1000 \
     GID=1000 \
     TZ=UTC \
-    TOOLS_GIT_TAG=""
+    TOOLS_GIT_TAG="" \
+    GAME_MOD_IDS=""
 
 # Install dependencies
 # RUN apt update && \

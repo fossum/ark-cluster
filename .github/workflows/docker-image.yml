@@ -16,7 +16,7 @@ jobs:
     - name: Push to Docker Hub
       uses: docker/build-push-action@v1
       with:
-        repository: motey/arkserver
+        repository: fossum/ark-cluster
         tags: latest
         tag_with_ref: true
         username: ${{ secrets.DOCKERHUB_USER }}
