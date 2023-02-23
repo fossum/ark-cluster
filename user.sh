@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Change the UID if needed
 if [ ! "$(id -u steam)" -eq "$UID" ]; then
@@ -9,6 +9,14 @@ fi
 if [ ! "$(id -g steam)" -eq "$GID" ]; then
 	echo "Changing steam gid to $GID."
 	groupmod -o -g "$GID" steam ;
+fi
+
+# Set Timezone
+if [ -f /usr/share/zoneinfo/${TZ} ]; then
+    echo "Setting timezone to '${TZ}'..."
+    ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
+else
+    echo "Timezone '${TZ}' does not exist!"
 fi
 
 # Add Ark Server Tools to Path
@@ -22,4 +30,4 @@ chown -R steam:steam /ark /home/steam
 chmod -R 777 /root/
 
 # Launch run.sh with user steam (-p allow to keep env variables)
-sudo --preserve-env --user=steam /home/steam/run.sh
+su --preserve-environment -c "bash /home/steam/run.sh" steam

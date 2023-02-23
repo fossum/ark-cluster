@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 echo "###########################################################################"
 echo "# Ark Server - " `date`
 echo "# UID $UID - GID $GID"
@@ -21,8 +22,6 @@ function stop {
 	exit
 }
 
-
-
 # Change working directory to /ark to allow relative path
 cd /ark
 
@@ -40,9 +39,7 @@ cp /home/steam/crontab /ark/template/crontab
 [ ! -L /ark/GameUserSettings.ini ] && ln -s server/ShooterGame/Saved/Config/LinuxServer/GameUserSettings.ini GameUserSettings.ini
 [ ! -f /ark/crontab ] && cp /ark/template/crontab /ark/crontab
 
-
-
-if [ ! -d /ark/server  ] || [ ! -f /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer ];then 
+if [ ! -d /ark/server  ] || [ ! -f /ark/server/version.txt ];then
 	echo "No game files found. Installing..."
 	mkdir -p /ark/server/ShooterGame/Saved/SavedArks
 	mkdir -p /ark/server/ShooterGame/Content/Mods
@@ -51,8 +48,7 @@ if [ ! -d /ark/server  ] || [ ! -f /ark/server/ShooterGame/Binaries/Linux/Shoote
 	arkmanager install
 	# Create mod dir
 else
-
-	if [ ${BACKUPONSTART} -eq 1 ] && [ "$(ls -A server/ShooterGame/Saved/SavedArks/)" ]; then 
+	if [ ${BACKUPONSTART} -eq 1 ] && [ "$(ls -A server/ShooterGame/Saved/SavedArks/)" ]; then
 		echo "[Backup]"
 		arkmanager backup
 	fi
