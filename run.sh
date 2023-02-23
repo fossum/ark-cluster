@@ -54,40 +54,6 @@ else
 	fi
 fi
 
-
-# If there is uncommented line in the file
-CRONNUMBER=`grep -v "^#" /ark/crontab | wc -l`
-if [ $CRONNUMBER -gt 0 ]; then
-	echo "Loading crontab..."
-	# Generate the crontab with the necessary environment variables added.
-	(
-		cat <<EOF
-SESSIONNAME=$SESSIONNAME
-SERVERMAP=$SERVERMAP
-SERVERPASSWORD=$SERVERPASSWORD
-ADMINPASSWORD=$ADMINPASSWORD
-SERVERPORT=$SERVERPORT
-STEAMPORT=$STEAMPORT
-BACKUPONSTART=$BACKUPONSTART
-UPDATEONSTART=$UPDATEONSTART
-BACKUPONSTOP=$BACKUPONSTOP
-WARNONSTOP=$WARNONSTOP
-TZ=$TZ
-NBPLAYERS=$NBPLAYERS
-UID=$UID
-GID=$GID
-EOF
-	) > /tmp/steam.crontab
-	cat /ark/crontab >> /tmp/steam.crontab
-	
-	# We load the crontab file if it exist.
-	crontab /tmp/steam.crontab
-	# Cron is attached to this process
-	sudo cron -f &
-else
-	echo "No crontab set."
-fi
-
 # Launching ark server
 if [ $UPDATEONSTART -eq 0 ]; then
 	arkmanager start -noautoupdate
