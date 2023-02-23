@@ -1,26 +1,117 @@
-ark:
-  container_name: ark
-  image: motey/arkserver
-  environment:
-    - SESSIONNAME=Ark Docker
-    - SERVERMAP=TheIsland
-    - SERVERPASSWORD=
-    - ADMINPASSWORD=adminpassword
-    - SERVERPORT=27015
-    - STEAMPORT=7778
-    - BACKUPONSTART=1
-    - BACKUPONSTOP=1
-    - WARNONSTOP=1
-    - UPDATEONSTART=1
-    - TZ=America/Toronto
-    - GID=1000
-    - UID=1000
-  volumes:
-    - /my/path/to/ark:/ark
-    - /my/path/to/cluster:/cluster
-  ports:
-   - 7778:7778/udp
-   - 7778:7778
-   - 27015:27015/udp
-   - 27015:27015
-   - 32330:32330
+
+version: "3.5"
+
+services:
+  theisland:
+    image: fossum/ark-cluster:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 3
+        window: 600s
+      mode: replicated
+      replicas: 1
+      resources:
+        reservations:
+          memory: 8gb
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: stop-first
+        failure_action: rollback
+
+    environment:
+      SERVERMAP: "TheIsland"
+      SESSION_NAME: "ARK Cluster TheIsland"
+      CRON_AUTO_UPDATE: ${CRON_AUTO_UPDATE:"0 */3 * * *"}
+      CRON_AUTO_BACKUP: ${CRON_AUTO_BACKUP:"0 */1 * * *"}
+      UPDATEONSTART: ${UPDATEONSTART:1}
+      BACKUPONSTART: ${BACKUPONSTART:1}
+      BACKUPONSTOP: ${BACKUPONSTOP:1}
+      WARNONSTOP: ${WARNONSTOP:1}
+      USER_ID: ${USER_ID:1000}
+      GROUP_ID: ${GROUP_ID:1000}
+      TZ: ${TZ:"UTC"}
+      MAX_BACKUP_SIZE: ${MAX_BACKUP_SIZE:1}
+      MAX_PLAYERS: ${MAX_PLAYERS:15}
+      RCON_ENABLE: ${RCON_ENABLE:"True"}
+      RCON_PORT: ${RCON_PORT:32330}
+      GAME_PORT: ${GAME_PORT:7777}
+      QUERY_PORT: ${QUERY_PORT:27015}
+      SERVER_PASSWORD: ${SERVER_PASSWORD:""}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:"keepmesecret"}
+      SPECTATOR_PASSWORD: ${SPECTATOR_PASSWORD:"keepmesecret"}
+      MODS: ${MODS:"731604991"}
+      CLUSTER_ID: ${CLUSTER_ID:"keepmesecret"}
+      KILL_PROCESS_TIMEOUT: ${KILL_PROCESS_TIMEOUT:300}
+      KILL_ALL_PROCESSES_TIMEOUT: ${KILL_ALL_PROCESSES_TIMEOUT:300}
+
+    volumes:
+      - island:/ark
+      - cluster:/cluster
+
+    ports:
+      - "32330:32330/tcp"
+      - "7777:7777/udp"
+      - "7778:7778/udp"
+      - "27015:27015/udp"
+
+  valguero:
+    image: fossum/ark-cluster:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 3
+        window: 600s
+      mode: replicated
+      replicas: 1
+      resources:
+        reservations:
+          memory: 8gb
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: stop-first
+        failure_action: rollback
+    environment:
+      SERVERMAP: "Valguero_P"
+      SESSION_NAME: "ARK Cluster Valguero"
+      CRON_AUTO_UPDATE: ${CRON_AUTO_UPDATE:"0 */3 * * *"}
+      CRON_AUTO_BACKUP: ${CRON_AUTO_BACKUP:"0 */1 * * *"}
+      UPDATEONSTART: ${UPDATEONSTART:1}
+      BACKUPONSTART: ${BACKUPONSTART:1}
+      BACKUPONSTOP: ${BACKUPONSTOP:1}
+      WARNONSTOP: ${WARNONSTOP:1}
+      USER_ID: ${USER_ID:1000}
+      GROUP_ID: ${GROUP_ID:1000}
+      TZ: ${TZ:"UTC"}
+      MAX_BACKUP_SIZE: ${MAX_BACKUP_SIZE:1}
+      MAX_PLAYERS: ${MAX_PLAYERS:15}
+      RCON_ENABLE: ${RCON_ENABLE:"True"}
+      RCON_PORT: ${RCON_PORT:32330}
+      GAME_PORT: ${GAME_PORT:7777}
+      QUERY_PORT: ${QUERY_PORT:27015}
+      SERVER_PASSWORD: ${SERVER_PASSWORD:""}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:"keepmesecret"}
+      SPECTATOR_PASSWORD: ${SPECTATOR_PASSWORD:"keepmesecret"}
+      MODS: ${MODS:"731604991"}
+      CLUSTER_ID: ${CLUSTER_ID:"keepmesecret"}
+      KILL_PROCESS_TIMEOUT: ${KILL_PROCESS_TIMEOUT:300}
+      KILL_ALL_PROCESSES_TIMEOUT: ${KILL_ALL_PROCESSES_TIMEOUT:300}
+
+    volumes:
+      - valguero:/ark
+      - cluster:/cluster
+
+    ports:
+      - "32331:32331/tcp"
+      - "7779:7779/udp"
+      - "7780:7780/udp"
+      - "27016:27016/udp"
+
+volumes:
+  island:
+  valguero:
+  cluster:

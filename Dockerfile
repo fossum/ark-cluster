@@ -1,51 +1,44 @@
+
 FROM cm2network/steamcmd:root
 
-# Initial config
-ENV SESSIONNAME="Ark Docker" \
-    SERVERMAP="TheIsland" \
-    SERVERPASSWORD="" \
-    ADMINPASSWORD="adm1np@ssword" \
-    MAX_PLAYERS=20 \
-    UPDATEONSTART=1 \
-    BACKUPONSTART=1 \
-    SERVERPORT=27015 \
-    STEAMPORT=7777 \
-    RCONPORT=32330 \
-    BACKUPONSTOP=1 \
-    WARNONSTOP=1 \
-    UID=1000 \
-    GID=1000 \
-    TZ=UTC \
-    TOOLS_GIT_TAG="" \
-    GAME_MOD_IDS=""
+# steam user already exists.
 
 # Install dependencies
-# RUN apt update && \
-#     apt install --yes curl cron unzip wget
 RUN --mount=type=cache,target=/var/cache/apt \
-    apt update && apt install --yes cron git
+    apt update && \
+    apt upgrade --yes -o Dpkg::Options::="--force-confold" && \
+    apt install --yes --no-install-recommends cron git && \
+    apt clean
 
-# Enable passwordless sudo for users under the "sudo" group
-# RUN sed -i.bkp -e \
-# 	's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' /etc/sudoers \
-# 	/etc/sudoers
-    
-# Add to sudo group
-RUN usermod -aG sudo steam
+# Default environment variables
+ENV CRON_AUTO_UPDATE="0 */3 * * *" \
+    CRON_AUTO_BACKUP="0 */1 * * *" \
+    UPDATEONSTART=1 \
+    BACKUPONSTART=1 \
+    BACKUPONSTOP=1 \
+    WARNONSTOP=1 \
+    USER_ID=1000 \
+    GROUP_ID=1000 \
+    TZ=UTC \
+    MAX_BACKUP_SIZE=500 \
+    SERVERMAP="TheIsland" \
+    SESSION_NAME="ARK Cluster (TheIsland)" \
+    MAX_PLAYERS=20 \
+    RCON_ENABLE="True" \
+    RCON_PORT=32330 \
+    GAME_PORT=7777 \
+    QUERY_PORT=27015 \
+    RAW_SOCKETS="False" \
+    SERVER_PASSWORD="" \
+    ADMIN_PASSWORD="" \
+    SPECTATOR_PASSWORD="" \
+    MODS="" \
+    CLUSTER_ID="keepmesecret" \
+    KILL_PROCESS_TIMEOUT=300 \
+    KILL_ALL_PROCESSES_TIMEOUT=300 \
+    TOOLS_GIT_REF=""
 
-# Copy & rights to folders
-COPY run.sh /home/steam/run.sh
-COPY user.sh /home/steam/user.sh
-COPY crontab /home/steam/crontab
-COPY arkmanager-user.cfg /home/steam/arkmanager.cfg
-
-RUN chmod 777 /home/steam/run.sh \
-    && chmod 777 /home/steam/user.sh
-RUN mkdir /ark \
-    && chown steam /ark && chmod 755 /ark \
-    && mkdir /cluster \
-    && chown steam /cluster && chmod 755 /cluster
-
+# Install Ark Server Tools
 # Get tag version or master.
 RUN if [ "$TOOLS_GIT_REF" = '' ]; then \
         TOOLS_GIT_REF='master'; \
@@ -53,29 +46,46 @@ RUN if [ "$TOOLS_GIT_REF" = '' ]; then \
         TOOLS_GIT_REF="$TOOLS_GIT_TAG"; \
     fi; \
     git clone --quiet --depth 1 --branch $TOOLS_GIT_REF \
-        https://github.com/arkmanager/ark-server-tools.git /home/steam/ark-server-tools
-WORKDIR /home/steam/ark-server-tools/tools
-RUN bash ./install.sh steam
-RUN ln -s /usr/local/bin/arkmanager /usr/bin/arkmanager # Allow crontab to call arkmanager
-RUN (crontab -l 2>/dev/null; echo "* 3 * * Mon yes | arkmanager upgrade-tools >> /ark/log/arkmanager-upgrade.log 2>&1") | crontab -
+        https://github.com/arkmanager/ark-server-tools.git /home/steam/ark-server-tools && \
+    cd /home/steam/ark-server-tools/tools && \
+    bash ./install.sh steam && \
+    ln -s /usr/local/bin/arkmanager /usr/bin/arkmanager # Allow crontab to call arkmanager && \
+    (crontab -l 2>/dev/null; echo "* 3 * * Mon yes | arkmanager upgrade-tools >> /ark/log/arkmanager-upgrade.log 2>&1") | crontab -
 
-# Define default config file in /etc/arkmanager
-COPY arkmanager-system.cfg /etc/arkmanager/arkmanager.cfg
+# Create required directories
+RUN mkdir -p /ark \
+    mkdir -p /ark/log \
+    mkdir -p /ark/backup \
+    mkdir -p /ark/staging \
+    mkdir -p /ark/default \
+    mkdir -p /cluster
 
-# Define default config file in /etc/arkmanager
+COPY user.sh /home/steam/user.sh
+COPY crontab /home/steam/crontab
+
+# Setup arkcluster
+RUN mkdir -p /etc/service/arkcluster
+COPY run.sh /etc/service/arkcluster/run
+RUN chmod +x /etc/service/arkcluster/run
+
+COPY crontab /home/steam/crontab
+COPY arkmanager.cfg /etc/arkmanager/arkmanager.cfg
 COPY instance.cfg /etc/arkmanager/instances/main.cfg
+COPY arkmanager-user.cfg /home/steam/arkmanager-user.cfg
 
-RUN chown steam -R /ark && chmod 755 -R /ark
+# Fix permissions
+RUN chmod 777 /home/steam/run.sh && \
+    chmod 777 /home/steam/user.sh && \
+    chown steam -R /ark && chmod 755 -R /ark && \
+    chown steam -R /etc/arkmanager/instances && chmod 755 -R /etc/arkmanager/instances && \
+    chown steam -R /cluster && chmod 755 -R /cluster
 
-# Fix permissions for config files
-RUN chown steam -R /etc/arkmanager/instances && chmod 755 -R /etc/arkmanager/instances
+EXPOSE ${QUERY_PORT} ${QUERY_PORT}
+EXPOSE ${GAME_PORT}/udp ${GAME_PORT}/udp
+EXPOSE ${GAME_PORT+1}/udp ${GAME_PORT+1}/udp
+EXPOSE ${RCON_PORT}/udp ${RCON_PORT}/udp
 
-EXPOSE ${STEAMPORT} 32330 ${SERVERPORT}
-# Add UDP
-EXPOSE ${STEAMPORT}/udp ${SERVERPORT}/udp
-
-VOLUME  /ark
-VOLUME  /cluster
+VOLUME /ark /cluster
 
 # Change the working directory to /ark
 WORKDIR /ark
