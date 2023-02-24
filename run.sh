@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 function log { echo "`date +\"%Y-%m-%dT%H:%M:%SZ\"`: $@"; }
+function warn { >&2 echo "`date +\"%Y-%m-%dT%H:%M:%SZ\"`: $@"; }
 
 log "###########################################################################"
 log "# Started  - `date`"
@@ -14,6 +15,11 @@ mkfifo /tmp/FIFO
 
 export TERM=linux
 
+function error {
+    log "$1"
+    exit 1
+}
+
 function stop {
     if [ ${BACKUPONSTOP} -eq 1 ] && [ "$(ls -A /ark/server/ShooterGame/Saved/SavedArks)" ]; then
         log "Creating Backup ..."
@@ -25,6 +31,15 @@ function stop {
         arkmanager stop
     fi
     exit
+}
+
+function verify_dir {
+    local dir="$1"
+    if [ ! -d $dir ]; then
+        mkdir -p $dir || error "Could not create $dir directory."
+    fi
+    # Put steam owner of directories (if the uid changed, then it's needed)
+    chown -R steam:steam $dir || error "Could not set $dir permissions."
 }
 
 ########################
@@ -48,7 +63,7 @@ if [ -f /usr/share/zoneinfo/${TZ} ]; then
     log "Setting timezone to ${TZ} ..."
     ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
 else
-    echo "Timezone '${TZ}' does not exist!"
+    warn "Timezone '${TZ}' does not exist!"
 fi
 
 ########################
@@ -58,23 +73,18 @@ fi
 ########################
 
 # Add a template directory to store the last version of config file
-[ ! -d /ark/template ] && mkdir /ark/template
-[ ! -d /ark/log ] && mkdir /ark/log
-[ ! -d /ark/backup ] && mkdir /ark/backup
-[ ! -d /ark/staging ] && mkdir /ark/staging
+verify_dir /ark
+verify_dir /ark/backup
+verify_dir /ark/log
+verify_dir /ark/staging
+verify_dir /ark/template
+verify_dir /cluster
+verify_dir /home/steam
+verify_dir /etc/arkmanager
 
-# We overwrite the default file each time
-cp /home/steam/arkmanager-user.cfg /ark/default/arkmanager.cfg
-
-# Copy default arkmanager.cfg if it doesn't exist
-[ ! -f /ark/arkmanager.cfg ] && cp /home/steam/arkmanager-user.cfg /ark/arkmanager.cfg
-if [ ! -L /etc/arkmanager/instances/main.cfg ]; then
-    rm /etc/arkmanager/instances/main.cfg
-    ln -s /ark/arkmanager.cfg /etc/arkmanager/instances/main.cfg
-fi
-
-# Put steam owner of directories (if the uid changed, then it's needed)
-chown -R steam:steam /ark /home/steam /cluster
+# Create custom config if not set, use custom config
+[ ! -f /ark/arkmanager.cfg ] && cp /etc/arkmanager/instances/main.cfg /ark/arkmanager.cfg || warn "Could not save default config file."
+cp /ark/arkmanager.cfg /etc/arkmanager/instances/main.cfg || warn "Could not save main instance config file."
 
 ########################
 #
@@ -97,31 +107,31 @@ if [ ! -f /etc/cron.d/arkbackup ]; then
 fi
 log "###########################################################################"
 
-if [ ! -d /ark/server  ] || [ ! -f /ark/server/version.txt ]; then
-    log "No game files found. Installing..."
-    mkdir -p /ark/server/ShooterGame/Saved/SavedArks
-    mkdir -p /ark/server/ShooterGame/Content/Mods
-    mkdir -p /ark/server/ShooterGame/Binaries/Linux
+if [ ! -f /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer  ] || [ ! -f /ark/server/version.txt ]; then
+    warn "No game files found. Installing..."
+    verify_dir /ark/server/ShooterGame/Saved/SavedArks
+    verify_dir /ark/server/ShooterGame/Content/Mods
+    verify_dir /ark/server/ShooterGame/Binaries/Linux
     touch /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer
-    chown -R steam:steam /ark/server
-    arkmanager install
+    verify_dir /ark/server
+    arkmanager install || error "Could not install game files."
 else
     if [ ${BACKUPONSTART} -eq 1 ] && [ "$(ls -A /ark/server/ShooterGame/Saved/SavedArks/)" ]; then
         log "Creating Backup ..."
-        arkmanager backup
+        arkmanager backup || warn "Could not create backup."
     fi
 fi
 
 log "###########################################################################"
 log "Installing Mods ..."
-arkmanager installmods
+arkmanager installmods || error "Could not install mods."
 
 log "###########################################################################"
 log "Launching ark server ..."
 if [ ${UPDATEONSTART} -eq 1 ]; then
-    arkmanager start
+    arkmanager start || error "Could not start server."
 else
-    arkmanager start -noautoupdate
+    arkmanager start -noautoupdate || error "Could not start server."
 fi
 
 # Stop server in case of signal INT or TERM

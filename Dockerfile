@@ -51,7 +51,7 @@ RUN if [ "$TOOLS_GIT_REF" = '' ]; then \
     bash ./install.sh steam && \
     ln -s /usr/local/bin/arkmanager /usr/bin/arkmanager # Allow crontab to call arkmanager
 COPY arkmanager.cfg /etc/arkmanager/arkmanager.cfg
-COPY arkmanager-user.cfg /home/steam/arkmanager-user.cfg
+COPY arkmanager-user.cfg /etc/arkmanager/instances/main.cfg
 
 # Create required directories
 RUN mkdir -p /ark \
@@ -63,23 +63,11 @@ RUN mkdir -p /ark \
 
 COPY crontab /home/steam/crontab
 
-# Setup arkcluster
-RUN mkdir -p /etc/service/arkcluster
-COPY run.sh /etc/service/arkcluster/run
-RUN chmod +x /etc/service/arkcluster/run
-
-
-# Fix permissions
-RUN chown steam -R /ark && chmod 755 -R /ark && \
-    chown steam -R /etc/arkmanager/instances && chmod 755 -R /etc/arkmanager/instances && \
-    chown steam -R /cluster && chmod 755 -R /cluster
+# Setup run script
+COPY run.sh /run.sh
+RUN chmod +x /run.sh
 
 # Skip expose, not all servers will use the same ports.
-
 VOLUME /ark /cluster
-
-# Change the working directory to /ark
 WORKDIR /ark
-
-# Update game launch the game.
-ENTRYPOINT ["/etc/service/arkcluster/run"]
+CMD ["/bin/bash", "/run.sh"]
