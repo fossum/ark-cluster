@@ -1,39 +1,16 @@
-# https://github.com/phusion/baseimage-docker
-FROM phusion/baseimage:latest-amd64
 
-LABEL org.opencontainers.image.authors="Richard Kuhnt <r15ch13+git@gmail.com>" \
-      org.opencontainers.image.title="ARK Cluster Image" \
-      org.opencontainers.image.description="ARK Cluster Image" \
-      org.opencontainers.image.url="https://github.com/r15ch13/arkcluster" \
-      org.opencontainers.image.source="https://github.com/r15ch13/arkcluster"
+FROM cm2network/steamcmd:root
 
-# Use baseimage-docker's init system.
-CMD ["/sbin/my_init"]
+# steam user already exists.
 
-# Install dependencies and clean up
-RUN apt-get update \
-    && apt-get upgrade -y -o Dpkg::Options::="--force-confold" \
-    && apt-get install -y --no-install-recommends \
-        bzip2 \
-        curl \
-        git \
-        lib32gcc1 \
-        libc6-i386 \
-        lsof \
-        perl-modules \
-        tzdata \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Install dependencies
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt update && \
+    apt upgrade --yes -o Dpkg::Options::="--force-confold" && \
+    apt install --yes --no-install-recommends cron git tzdata && \
+    apt clean
 
-# Create required directories
-RUN mkdir -p /ark \
-    mkdir -p /ark/log \
-    mkdir -p /ark/backup \
-    mkdir -p /ark/staging \
-    mkdir -p /ark/default \
-    mkdir -p /cluster
-
-# Expose environment variables
+# Default environment variables
 ENV CRON_AUTO_UPDATE="0 */3 * * *" \
     CRON_AUTO_BACKUP="0 */1 * * *" \
     UPDATEONSTART=1 \
@@ -45,45 +22,64 @@ ENV CRON_AUTO_UPDATE="0 */3 * * *" \
     TZ=UTC \
     MAX_BACKUP_SIZE=500 \
     SERVERMAP="TheIsland" \
-    SESSION_NAME="ARK Docker" \
-    MAX_PLAYERS=15 \
+    SESSION_NAME="ARK Cluster" \
+    MAX_PLAYERS=20 \
     RCON_ENABLE="True" \
     RCON_PORT=32330 \
-    GAME_PORT=7778 \
+    GAME_PORT=7777 \
     QUERY_PORT=27015 \
     RAW_SOCKETS="False" \
     SERVER_PASSWORD="" \
     ADMIN_PASSWORD="" \
     SPECTATOR_PASSWORD="" \
     MODS="" \
-    CLUSTER_ID="keepmesecret" \
+    CLUSTER_ID="" \
     KILL_PROCESS_TIMEOUT=300 \
-    KILL_ALL_PROCESSES_TIMEOUT=300
+    KILL_ALL_PROCESSES_TIMEOUT=300 \
+    TOOLS_GIT_REF=""
 
-# Add steam user
-RUN addgroup --gid $GROUP_ID steam \
-    && adduser --system --uid $USER_ID --gid $GROUP_ID --shell /bin/bash steam \
-    && usermod -a -G docker_env steam
+# Install Ark Server Tools
+# Get tag version or master.
+RUN if [ "$TOOLS_GIT_REF" = '' ]; then \
+        TOOLS_GIT_REF='master'; \
+    else \
+        TOOLS_GIT_REF="$TOOLS_GIT_TAG"; \
+    fi; \
+    git clone --quiet --depth 1 --branch $TOOLS_GIT_REF \
+        https://github.com/arkmanager/ark-server-tools.git /home/steam/ark-server-tools && \
+    cd /home/steam/ark-server-tools/tools && \
+    bash ./install.sh steam && \
+    ln -s /usr/local/bin/arkmanager /usr/bin/arkmanager # Allow crontab to call arkmanager
+COPY arkmanager.cfg /etc/arkmanager/arkmanager.cfg
+COPY arkmanager-user.cfg /home/steam/arkmanager-user.cfg
 
-# Install ark-server-tools
-RUN git clone --single-branch --depth 1 https://github.com/arkmanager/ark-server-tools.git /home/steam/ark-server-tools \
-    && cd /home/steam/ark-server-tools/tools/ \
-    && ./install.sh steam --bindir=/usr/bin
+# Create required directories
+RUN mkdir -p /ark \
+    mkdir -p /ark/log \
+    mkdir -p /ark/backup \
+    mkdir -p /ark/staging \
+    mkdir -p /ark/default \
+    mkdir -p /cluster
 
-# Install steamcmd
-RUN mkdir -p /home/steam/steamcmd \
-    && cd /home/steam/steamcmd \
-    && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+COPY crontab /home/steam/crontab
 
 # Setup arkcluster
 RUN mkdir -p /etc/service/arkcluster
 COPY run.sh /etc/service/arkcluster/run
 RUN chmod +x /etc/service/arkcluster/run
 
-COPY crontab /home/steam/crontab
 
-COPY arkmanager.cfg /etc/arkmanager/arkmanager.cfg
-COPY arkmanager-user.cfg /home/steam/arkmanager-user.cfg
+# Fix permissions
+RUN chown steam -R /ark && chmod 755 -R /ark && \
+    chown steam -R /etc/arkmanager/instances && chmod 755 -R /etc/arkmanager/instances && \
+    chown steam -R /cluster && chmod 755 -R /cluster
+
+# Skip expose, not all servers will use the same ports.
 
 VOLUME /ark /cluster
+
+# Change the working directory to /ark
 WORKDIR /ark
+
+# Update game launch the game.
+ENTRYPOINT ["/etc/service/arkcluster/run"]
