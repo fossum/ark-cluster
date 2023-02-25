@@ -6,7 +6,7 @@
         {
             "label": "Build Image",
             "type": "shell",
-            "command": "docker build -t ark-server .",
+            "command": "docker build -t ark-cluster .",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -16,7 +16,7 @@
         {
             "label": "Run Image",
             "type": "shell",
-            "command": "docker stop ark; docker rm ark; docker run -p 7777:7777/udp -p 7778:7778/udp -p 32330:32330 -p 27015:27015/udp -e SESSIONNAME=myserver -e ADMINPASSWORD=\"mypasswordadmin\" --name ark ark-server"
+            "command": "docker stop ark; docker rm ark; docker run -v ${pwd}/ark:/ark -p 7777:7777/udp -p 7778:7778/udp -p 32330:32330 -p 27015:27015/udp -e SESSIONNAME=myserver -e ADMINPASSWORD=\"mypasswordadmin\" --name ark ark-cluster"
         }
     ]
 }
