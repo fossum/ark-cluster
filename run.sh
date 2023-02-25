@@ -109,6 +109,8 @@ log "###########################################################################
 
 if [ ! -f /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer  ] || [ ! -f /ark/server/version.txt ]; then
     warn "No game files found. Installing..."
+    export free_space=$(df -Pk . | sed 1d | grep -v used | awk '{ print $4 }')
+    [ $free_space -gt 20000000 ] || warn "Only $free_space bytes available. Installation may fail."
     verify_dir /ark/server/ShooterGame/Saved/SavedArks
     verify_dir /ark/server/ShooterGame/Content/Mods
     verify_dir /ark/server/ShooterGame/Binaries/Linux
