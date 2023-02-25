@@ -7,7 +7,7 @@ FROM cm2network/steamcmd:root
 RUN --mount=type=cache,target=/var/cache/apt \
     apt update && \
     apt upgrade --yes -o Dpkg::Options::="--force-confold" && \
-    apt install --yes --no-install-recommends cron git tzdata && \
+    apt install --yes --no-install-recommends bzip2 cron git tzdata && \
     apt clean
 
 # Default environment variables
@@ -30,8 +30,8 @@ ENV CRON_AUTO_UPDATE="0 */3 * * *" \
     QUERY_PORT=27015 \
     RAW_SOCKETS="False" \
     SERVER_PASSWORD="" \
-    ADMIN_PASSWORD="" \
-    SPECTATOR_PASSWORD="" \
+    ADMIN_PASSWORD="Def@aultP@ssw0rd" \
+    SPECTATOR_PASSWORD="Spectat0r" \
     MODS="" \
     CLUSTER_ID="" \
     KILL_PROCESS_TIMEOUT=300 \
