@@ -64,6 +64,8 @@ RUN mkdir -p /ark \
 COPY crontab /home/steam/crontab
 
 # Add run and user scripts
+COPY shared.sh /shared.sh
+RUN chmod +x /shared.sh
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 COPY user-space.sh /user-space.sh

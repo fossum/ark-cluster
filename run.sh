@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 
-function log { echo "`date +\"%Y-%m-%dT%H:%M:%SZ\"`: $@"; }
-function warn { >&2 echo "`date +\"%Y-%m-%dT%H:%M:%SZ\"`: $@"; }
-
-function error {
-    log "!!! $1"
-    exit 1
-}
+. /shared.sh
 
 function stop {
     if [ ${BACKUPONSTOP} -eq 1 ] && [ "$(ls -A /ark/server/ShooterGame/Saved/SavedArks)" ]; then
@@ -98,7 +92,9 @@ verify_dir /etc/arkmanager
 verify_dir /home/steam
 
 # Create custom config if not set, use custom config
-[ ! -f /ark/arkmanager.cfg ] && su steam -c "cp /etc/arkmanager/instances/main.cfg /ark/arkmanager.cfg" || warn "Could not save default config file."
+if [ ! -f /ark/arkmanager.cfg ]; then
+    su steam -c "cp /etc/arkmanager/instances/main.cfg /ark/arkmanager.cfg" || warn "Could not save default config file."
+fi
 su steam -c "cp /ark/arkmanager.cfg /etc/arkmanager/instances/main.cfg" || warn "Could not save main instance config file."
 
 ########################

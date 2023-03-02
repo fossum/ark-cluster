@@ -1,11 +1,9 @@
+#!/usr/bin/env bash
 
-# Create custom config if not set, use custom config
-[ ! -f /ark/arkmanager.cfg ] && cp /etc/arkmanager/instances/main.cfg /ark/arkmanager.cfg || warn "Could not save default config file."
-cp /ark/arkmanager.cfg /etc/arkmanager/instances/main.cfg || warn "Could not save main instance config file."
+. /shared.sh
 
 if [ ! -f /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer  ] || [ ! -f /ark/server/version.txt ]; then
     warn "No game files found. Installing..."
-    # touch /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer
     arkmanager install || error "Could not install game files."
 else
     if [ ${BACKUPONSTART} -eq 1 ] && [ "$(ls -A /ark/server/ShooterGame/Saved/SavedArks/)" ]; then
