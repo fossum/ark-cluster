@@ -1,5 +1,11 @@
 {
     "cSpell.words": [
         "arkmanager"
-    ]
+    ],
+    "gitlens.autolinks": [
+        {
+            "prefix": "#",
+            "url": "https://github.com/fossum/ark-cluster/issues/<num>"
+        }
+    ],
 }

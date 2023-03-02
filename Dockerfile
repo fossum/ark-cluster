@@ -63,9 +63,11 @@ RUN mkdir -p /ark \
 
 COPY crontab /home/steam/crontab
 
-# Setup run script
+# Add run and user scripts
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
+COPY user-space.sh /user-space.sh
+RUN chmod +x /user-space.sh
 
 # Skip expose, not all servers will use the same ports.
 VOLUME /ark /cluster
