@@ -2,6 +2,21 @@
 
 . /shared.sh
 
+function verify_dir {
+    # This user space version does not set permissions.
+
+    local dir="$1"
+    if [ ! -d $dir ]; then
+        mkdir -p $dir || error "Could not create $dir directory."
+    fi
+}
+
+# Create custom config if not set, use custom config
+if [ ! -f /ark/arkmanager.cfg ]; then
+    cp /etc/arkmanager/instances/main.cfg /ark/arkmanager.cfg || warn "Could not save default config file."
+fi
+cp /ark/arkmanager.cfg /etc/arkmanager/instances/main.cfg || warn "Could not save main instance config file."
+
 if [ ! -f /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer  ] || [ ! -f /ark/server/version.txt ]; then
     warn "No game files found. Installing..."
     arkmanager install || error "Could not install game files."

@@ -20,17 +20,21 @@ function verify_dir {
 
     local dir="$1"
     if [ ! -d $dir ]; then
-        mkdir -p $dir || error "Could not create $dir directory."
+        su -c "mkdir -p $dir" steam || error "Could not create $dir directory."
     fi
 
     # Put steam owner of directories (if the uid changed, then it's needed)
-    chown -R steam:steam $dir
-    #chmod -R 777 $dir || error "Could not set $dir permissions."
+    owner_id="$(stat --format '%u' "$dir")"
+    group_id="$(stat --format '%g' "$dir")"
+    if [ "${owner_id}" != "${USER_ID}" ] || [ "${group_id}" != "${GROUP_ID}" ]; then
+        chown -R $USER_ID:$GROUP_ID $dir
+        #chmod -R 777 $dir || error "Could not set $dir permissions."
+    fi
 
     # Verify user owns files.
     # Can't use chmod code as some file systems will not allow user change.
-    owner="$(stat --format '%U' "$dir")"
-    if [ "${owner}" != "steam" ]; then
+    owner_id="$(stat --format '%u' "$dir")"
+    if [ "${owner_id}" != "${USER_ID}" ]; then
         error "Could not set owner of $dir"
     fi
 }
@@ -50,7 +54,7 @@ export TERM=linux
 
 ########################
 #
-# System Setup
+log "System Setup"
 #
 ########################
 
@@ -74,7 +78,7 @@ fi
 
 ########################
 #
-# File Setup
+log "File Setup"
 #
 ########################
 
@@ -91,15 +95,9 @@ verify_dir /cluster
 verify_dir /etc/arkmanager
 verify_dir /home/steam
 
-# Create custom config if not set, use custom config
-if [ ! -f /ark/arkmanager.cfg ]; then
-    su steam -c "cp /etc/arkmanager/instances/main.cfg /ark/arkmanager.cfg" || warn "Could not save default config file."
-fi
-su steam -c "cp /ark/arkmanager.cfg /etc/arkmanager/instances/main.cfg" || warn "Could not save main instance config file."
-
 ########################
 #
-# CRON Setup
+log "CRON Setup"
 #
 ########################
 
@@ -120,9 +118,8 @@ log "###########################################################################
 
 ########################
 #
-# Steam User Space
+log "Dropping to steam User Space"
 #
 ########################
 
-log "Dropping to steam user."
 su steam -c "bash /user-space.sh"
