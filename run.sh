@@ -31,11 +31,13 @@ function verify_dir {
         #chmod -R 777 $dir || error "Could not set $dir permissions."
     fi
 
-    # Verify user owns files.
-    # Can't use chmod code as some file systems will not allow user change.
+    # Verify user can modify files.
+    # Some file systems may not show user change.
     owner_id="$(stat --format '%u' "$dir")"
     if [ "${owner_id}" != "${USER_ID}" ]; then
-        error "Could not set owner of $dir"
+        su -c "touch '$dir/test_file'" steam || error "Could get permission for $dir"
+        su -c "rm '$dir/test_file'" steam || error "Could get permission for $dir"
+        log "$dir is not owned by steam user, but is writable."
     fi
 }
 
