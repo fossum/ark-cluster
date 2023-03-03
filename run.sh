@@ -62,7 +62,7 @@ log "System Setup"
 
 if [ -f /usr/share/zoneinfo/${TZ} ]; then
     log "Setting timezone to ${TZ} ..."
-    ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
+    ln -sf "/usr/share/zoneinfo/${TZ}" /etc/localtime
 else
     warn "Timezone '${TZ}' does not exist!"
 fi
