@@ -74,7 +74,7 @@ For example :
 After updating the `/my/path/to/ark/crontab` please run the command
 `docker exec ark crontab -u steam /ark/crontab`
 
-To add mods, you only need to change the variable ark_GameModIds in *arkmanager.cfg* with a list of your modIds (like this  `ark_GameModIds="987654321,1234568"`). If UPDATEONSTART is enable, just restart your docker or use `docker exec ark arkmanager update --update-mods`.
+To add mods, you only need to change the variable ark_GameModIds in *arkmanager.cfg* with a list of your modIds (like this  `ark_GameModIds="987654321,1234568"`). If UPDATE_ON_START is enabled, just restart your docker or use `docker exec ark arkmanager update --update-mods`.
 
 ## Recommended Usages
 
@@ -109,19 +109,19 @@ To add mods, you only need to change the variable ark_GameModIds in *arkmanager.
 ## Variables
 
 - __SESSIONNAME__: Name of your ark server (default: "Ark Docker")
-- __SERVERMAP__: Map of your ark server (default: "TheIsland")
-- __SERVERPASSWORD__: Password of your ark server (default: "")
-- __ADMINPASSWORD__: Admin password of your ark server (default: "adminpassword")
-- __SERVERPORT__: Ark server port (can't rebind with docker, it doesn't work) (default: 27015)
-- __STEAMPORT__: Steam server port (can't rebind with docker, it doesn't work) (default: 7778)
+- __SERVER_MAP__: Map of your ark server (default: "TheIsland")
+- __SERVER_PASSWORD__: Password of your ark server (default: "")
+- __ADMIN_PASSWORD__: Admin password of your ark server (default: "adminpassword")
+- __SERVER_PORT__: Ark server port (can't rebind with docker, it doesn't work) (default: 27015)
+- __STEAM_PORT__: Steam server port (can't rebind with docker, it doesn't work) (default: 7778)
 - __MAX_PLAYERS__: Number of maximum players (default: 70)
-- __BACKUPONSTART__: Backup the server when the container is started. 0: no backup (default: 1)
-- __UPDATEPONSTART__: Update the server when the container is started. 0: no update (default: 1)
-- __BACKUPONSTOP__: Backup the server when the container is stopped. 0: no backup (default: 1)
-- __WARNONSTOP__: Warn the players before the container is stopped. 0: no warning (default: 1)
+- __BACKUP_ON_START__: Backup the server when the container is started. 0: no backup (default: 1)
+- __UPDATE_ON_START__: Update the server when the container is started. 0: no update (default: 1)
+- __BACKUP_ON_STOP__: Backup the server when the container is stopped. 0: no backup (default: 1)
+- __WARN_ON_STOP__: Warn the players before the container is stopped. 0: no warning (default: 1)
 - __TZ__: container timezone (for crontab). (default: "UTC").
-- __UID__: UID of the user used. Owner of the volume /ark (default: 1000)
-- __GID__: GID of the user used. Owner of the volume /ark (default: 1000)
+- __USER_ID__: UID of the user used. Owner of the volume /ark (default: 1000)
+- __GROUP_ID__: GID of the user used. Owner of the volume /ark (default: 1000)
 
 ## Volumes
 

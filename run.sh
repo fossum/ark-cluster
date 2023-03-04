@@ -1,24 +1,6 @@
 #!/usr/bin/env bash
 
-function log { echo "`date +\"%Y-%m-%dT%H:%M:%SZ\"`: $@"; }
-function warn { >&2 echo "`date +\"%Y-%m-%dT%H:%M:%SZ\"`: $@"; }
-
-log "###########################################################################"
-log "# Started  - `date`"
-log "# Server   - ${SESSION_NAME} (${SERVERMAP})"
-log "# Cluster  - ${CLUSTER_ID}"
-log "# User     - ${USER_ID}"
-log "# Group    - ${GROUP_ID}"
-log "###########################################################################"
-[ -p /tmp/FIFO ] && rm /tmp/FIFO
-mkfifo /tmp/FIFO
-
-export TERM=linux
-
-function error {
-    log "$1"
-    exit 1
-}
+. /shared.sh
 
 function stop {
     if [ ${BACKUPONSTOP} -eq 1 ] && [ "$(ls -A /ark/server/ShooterGame/Saved/SavedArks)" ]; then
@@ -30,65 +12,97 @@ function stop {
     else
         arkmanager stop
     fi
-    exit
+    exit 0
 }
 
 function verify_dir {
+    # Must be used after steam UID/GID set.
+
     local dir="$1"
     if [ ! -d $dir ]; then
-        mkdir -p $dir || error "Could not create $dir directory."
+        su -c "mkdir -p $dir" steam || error "Could not create $dir directory."
     fi
+
     # Put steam owner of directories (if the uid changed, then it's needed)
-    chown -R steam:steam $dir || error "Could not set $dir permissions."
+    owner_id="$(stat --format '%u' "$dir")"
+    group_id="$(stat --format '%g' "$dir")"
+    if [ "${owner_id}" != "${USER_ID}" ] || [ "${group_id}" != "${GROUP_ID}" ]; then
+        chown -R $USER_ID:$GROUP_ID $dir
+        #chmod -R 777 $dir || error "Could not set $dir permissions."
+    fi
+
+    # Verify user can modify files.
+    # Some file systems may not show user change.
+    owner_id="$(stat --format '%u' "$dir")"
+    if [ "${owner_id}" != "${USER_ID}" ]; then
+        su -c "touch '$dir/test_file'" steam || error "Could get permission for $dir"
+        su -c "rm '$dir/test_file'" steam || error "Could get permission for $dir"
+        log "$dir is not owned by steam user, but is writable."
+    fi
 }
 
-########################
-#
-# System Setup
-#
-########################
+log "###########################################################################"
+log "# Started  - `date`"
+log "# Server   - ${SESSION_NAME} (${SERVER_MAP})"
+log "# Cluster  - ${CLUSTER_ID}"
+log "# User     - ${USER_ID}"
+log "# Group    - ${GROUP_ID}"
+log "###########################################################################"
 
-# Change the USER_ID if needed
-if [ ! "$(id -u steam)" -eq "$USER_ID" ]; then
-    log "Changing steam uid to $USER_ID."
-    usermod -o -u "$USER_ID" steam ;
-fi
-# Change gid if needed
-if [ ! "$(id -g steam)" -eq "$GROUP_ID" ]; then
-    log "Changing steam gid to $GROUP_ID."
-    groupmod -o -g "$GROUP_ID" steam ;
-fi
+[ -p /tmp/FIFO ] && rm /tmp/FIFO
+mkfifo /tmp/FIFO
+
+export TERM=linux
+
+########################
+#
+log "System Setup"
+#
+########################
 
 if [ -f /usr/share/zoneinfo/${TZ} ]; then
     log "Setting timezone to ${TZ} ..."
-    ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
+    ln -sf "/usr/share/zoneinfo/${TZ}" /etc/localtime
 else
     warn "Timezone '${TZ}' does not exist!"
 fi
 
+# Change the USER_ID if needed
+if [ ! "$(id -u steam)" -eq "$USER_ID" ]; then
+    log "Changing steam uid to $USER_ID."
+    usermod -o -u "$USER_ID" steam
+fi
+
+# Change the GROUP_ID if needed
+if [ ! "$(id -g steam)" -eq "$GROUP_ID" ]; then
+    log "Changing steam gid to $GROUP_ID."
+    groupmod -o -g "$GROUP_ID" steam
+fi
+
 ########################
 #
-# File Setup
+log "File Setup"
 #
 ########################
 
-# Add a template directory to store the last version of config file
 verify_dir /ark
 verify_dir /ark/backup
 verify_dir /ark/log
+verify_dir /ark/server
+# verify_dir /ark/server/ShooterGame/Binaries/Linux
+# verify_dir /ark/server/ShooterGame/Content/Mods
+# verify_dir /ark/server/ShooterGame/Saved/SavedArks
 verify_dir /ark/staging
 verify_dir /ark/template
 verify_dir /cluster
-verify_dir /home/steam
 verify_dir /etc/arkmanager
+verify_dir /home/steam
 
-# Create custom config if not set, use custom config
-[ ! -f /ark/arkmanager.cfg ] && cp /etc/arkmanager/instances/main.cfg /ark/arkmanager.cfg || warn "Could not save default config file."
-cp /ark/arkmanager.cfg /etc/arkmanager/instances/main.cfg || warn "Could not save main instance config file."
+#chmod -R 777 /ark/server || log ">>> Could not set /ark/server permissions."
 
 ########################
 #
-# CRON Setup
+log "CRON Setup"
 #
 ########################
 
@@ -107,40 +121,14 @@ if [ ! -f /etc/cron.d/arkbackup ]; then
 fi
 log "###########################################################################"
 
-if [ ! -f /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer  ] || [ ! -f /ark/server/version.txt ]; then
-    warn "No game files found. Installing..."
-    export free_space=$(df -Pk . | sed 1d | grep -v used | awk '{ print $4 }')
-    [ $free_space -gt 20000000 ] || warn "Only $free_space bytes available. Installation may fail."
-    verify_dir /ark/server/ShooterGame/Saved/SavedArks
-    verify_dir /ark/server/ShooterGame/Content/Mods
-    verify_dir /ark/server/ShooterGame/Binaries/Linux
-    touch /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer
-    verify_dir /ark/server
-    arkmanager install || error "Could not install game files."
-else
-    if [ ${BACKUPONSTART} -eq 1 ] && [ "$(ls -A /ark/server/ShooterGame/Saved/SavedArks/)" ]; then
-        log "Creating Backup ..."
-        arkmanager backup || warn "Could not create backup."
-    fi
-fi
+# Add bash complete for arkmanager
+# cp /home/steam/arkmanager-complete.bash /etc/bash_completion.d/
+# source /home/steam/arkmanager-complete.bash
 
-log "###########################################################################"
-log "Installing Mods ..."
-arkmanager installmods || error "Could not install mods."
+########################
+#
+log "Dropping to steam User Space"
+#
+########################
 
-log "###########################################################################"
-log "Launching ark server ..."
-if [ ${UPDATEONSTART} -eq 1 ]; then
-    arkmanager start || error "Could not start server."
-else
-    arkmanager start -noautoupdate || error "Could not start server."
-fi
-
-# Stop server in case of signal INT or TERM
-log "###########################################################################"
-log "Running ... (waiting for INT/TERM signal)"
-trap stop INT
-trap stop TERM
-
-read < /tmp/FIFO &
-wait
+su steam -c "bash /user-space.sh"

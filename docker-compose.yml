@@ -4,6 +4,14 @@ version: "3.5"
 services:
   theisland:
     image: fossum/ark-cluster:master
+
+    # healthcheck:
+    #   test: arkmanager status | grep 'Server listening:.\+No' && exit 1
+    #   interval: 60s
+    #   retries: 5
+    #   start_period: 600s
+    #   timeout: 10s
+
     deploy:
       restart_policy:
         condition: on-failure
@@ -22,14 +30,14 @@ services:
         failure_action: rollback
 
     environment:
-      SERVERMAP: "TheIsland"
+      SERVER_MAP: "TheIsland"
       SESSION_NAME: "ARK Cluster TheIsland"
       CRON_AUTO_UPDATE: ${CRON_AUTO_UPDATE:-0 */3 * * *}
       CRON_AUTO_BACKUP: ${CRON_AUTO_BACKUP:-0 */1 * * *}
-      UPDATEONSTART: ${UPDATEONSTART:-1}
-      BACKUPONSTART: ${BACKUPONSTART:-1}
-      BACKUPONSTOP: ${BACKUPONSTOP:-1}
-      WARNONSTOP: ${WARNONSTOP:-1}
+      UPDATE_ON_START: ${UPDATEONSTART:-1}
+      BACKUP_ON_START: ${BACKUPONSTART:-1}
+      BACKUP_ON_STOP: ${BACKUPONSTOP:-1}
+      WARN_ON_STOP: ${WARNONSTOP:-1}
       USER_ID: ${USER_ID:-1000}
       GROUP_ID: ${GROUP_ID:-1000}
       TZ: ${TZ:-UTC}
@@ -76,7 +84,7 @@ services:
         order: stop-first
         failure_action: rollback
     environment:
-      SERVERMAP: "Valguero_P"
+      SERVER_MAP: "Valguero_P"
       SESSION_NAME: "ARK Cluster"
       RCON_PORT: ${RCON_PORT:-32331}
       GAME_PORT: ${GAME_PORT:-7779}

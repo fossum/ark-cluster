@@ -1,0 +1,144 @@
+version: "3.5"
+
+services:
+  theisland:
+    image: fossum/ark-cluster:dev
+    # healthcheck:
+    #   test: arkmanager status | grep 'Server listening:.\+No' && exit 1
+    #   interval: 60s
+    #   retries: 5
+    #   start_period: 600s
+    #   timeout: 10s
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 2
+        window: 600s
+      mode: replicated
+      replicas: 1
+      resources:
+        reservations:
+          memory: 8gb
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: stop-first
+        failure_action: rollback
+      placement:
+        constraints:
+          - node.hostname==dockers
+    volumes:
+      # - theisland:/ark
+      - type: bind
+        source: /mnt/nfs/ark/theisland
+        target: /ark
+      - cluster:/cluster
+    environment:
+      SERVER_MAP: TheIsland
+      SESSION_NAME: Venture Bros (TheIsland)
+      TZ: ${TIME_ZONE}
+      SERVER_PASSWORD: ${SERVER_PASSWORD}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      MAX_PLAYERS: ${MAX_PLAYERS}
+      UPDATE_ON_START: ${UPDATE_ON_START}
+      BACKUP_ON_STOP: ${BACKUP_ON_STOP}
+      PRE_UPDATE_BACKUP: ${PRE_UPDATE_BACKUP}
+      WARN_ON_STOP: ${WARN_ON_STOP}
+      ENABLE_CROSSPLAY: ${ENABLE_CROSSPLAY}
+      DISABLE_BATTLEYE: ${DISABLE_BATTLEYE}
+      GAME_MOD_IDS: ${GAME_MOD_IDS}
+      CLUSTER_ID: ${CLUSTER_ID}
+      GAME_PORT: 7777
+      QUERY_PORT: 27015
+      RCON_PORT: 27020
+      BACKUP_TO_LOAD: backup/main.2023-03-01_20.08.36.tar.bz2
+    ports:
+      - "7777:7777/udp"
+      - "7778:7778/udp"
+      - "27015:27015/udp"
+      - "27020:27020/tcp"
+  # fjordur:
+  #   image: fossum/ark-cluster:dev
+  #   # entrypoint: /bin/bash
+  #   # command: -c "tail -F anything"
+  #   # healthcheck:
+  #   #   test: arkmanager status | grep 'Server listening:.\+No' && exit 1
+  #   #   interval: 60s
+  #   #   retries: 5
+  #   #   start_period: 600s
+  #   #   timeout: 10s
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #       delay: 15s
+  #       max_attempts: 3
+  #       window: 600s
+  #     mode: replicated
+  #     replicas: 1
+  #     resources:
+  #      reservations:
+  #        memory: 8gb
+  #     update_config:
+  #       parallelism: 1
+  #       delay: 30s
+  #       order: stop-first
+  #       failure_action: rollback
+  #     placement:
+  #       constraints:
+  #         - node.hostname==dockers
+  #   environment:
+  #     SERVER_MAP: Fjordur
+  #     SESSION_NAME: Venture Bros (Fjordur)
+  #     TZ: ${TIME_ZONE}
+  #     SERVER_PASSWORD: ${SERVER_PASSWORD}
+  #     ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+  #     MAX_PLAYERS: ${MAX_PLAYERS}
+  #     UPDATE_ON_START: ${UPDATE_ON_START}
+  #     BACKUP_ON_STOP: ${BACKUP_ON_STOP}
+  #     PRE_UPDATE_BACKUP: ${PRE_UPDATE_BACKUP}
+  #     WARN_ON_STOP: ${WARN_ON_STOP}
+  #     ENABLE_CROSSPLAY: ${ENABLE_CROSSPLAY}
+  #     DISABLE_BATTLEYE: ${DISABLE_BATTLEYE}
+  #     GAME_MOD_IDS: ${GAME_MOD_IDS}
+  #     CLUSTER_ID: ${CLUSTER_ID}
+  #     GAME_PORT: 7780
+  #     QUERY_PORT: 27016
+  #     RCON_PORT: 27021
+  #   ports:
+  #     - "7780:7780/udp"
+  #     - "7781:7781/udp"
+  #     - "27016:27016/udp"
+  #     - "27021:27021/tcp"
+  #   volumes:
+  #     - fjordur:/ark
+  #     - cluster:/cluster
+
+volumes:
+  # theisland:
+  #   driver: local
+  #   driver_opts:
+  #     type: "nfs"
+  #     o: "addr=truenas.thefoss.org,nolock,rw,nfsvers=4,sync,noatime,tcp"
+  #     device: ":/mnt/no-backup/games/ark/theisland"
+  #     # type: "cifs"
+  #     # o: "addr=truenas.thefoss.org,username=${CIFS_USER},password=${CIFS_PASS},file_mode=0777,dir_mode=0777"
+  #     # device: "//truenas.thefoss.org/ark/theisland"
+  # fjordur:
+  #   driver: local
+  #   driver_opts:
+  #     #type: "nfs"
+  #     #o: "addr=truenas.thefoss.org,nolock,rw,nfsvers=4,async,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
+  #     #device: ":/mnt/no-backup/games/ark/fjordur"
+  #     type: "cifs"
+  #     o: "addr=truenas.thefoss.org,username=${CIFS_USER},password=${CIFS_PASS},file_mode=0777,dir_mode=0777"
+  #     device: "//truenas.thefoss.org/ark/fjordur"
+  cluster:
+    driver: local
+    driver_opts:
+      type: "nfs"
+      o: "addr=truenas.thefoss.org,nolock,rw,nfsvers=4,sync,noatime,tcp"
+      device: ":/mnt/no-backup/games/ark/cluster"
+      # type: "cifs"
+      # o: "addr=truenas.thefoss.org,username=${CIFS_USER},password=${CIFS_PASS},file_mode=0777,dir_mode=0777"
+      # device: "//truenas.thefoss.org/ark/cluster"
