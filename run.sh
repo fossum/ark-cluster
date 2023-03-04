@@ -43,7 +43,7 @@ function verify_dir {
 
 log "###########################################################################"
 log "# Started  - `date`"
-log "# Server   - ${SESSION_NAME} (${SERVERMAP})"
+log "# Server   - ${SESSION_NAME} (${SERVER_MAP})"
 log "# Cluster  - ${CLUSTER_ID}"
 log "# User     - ${USER_ID}"
 log "# Group    - ${GROUP_ID}"
@@ -72,7 +72,8 @@ if [ ! "$(id -u steam)" -eq "$USER_ID" ]; then
     log "Changing steam uid to $USER_ID."
     usermod -o -u "$USER_ID" steam
 fi
-# Change gid if needed
+
+# Change the GROUP_ID if needed
 if [ ! "$(id -g steam)" -eq "$GROUP_ID" ]; then
     log "Changing steam gid to $GROUP_ID."
     groupmod -o -g "$GROUP_ID" steam
@@ -97,6 +98,8 @@ verify_dir /cluster
 verify_dir /etc/arkmanager
 verify_dir /home/steam
 
+#chmod -R 777 /ark/server || log ">>> Could not set /ark/server permissions."
+
 ########################
 #
 log "CRON Setup"
@@ -117,6 +120,10 @@ if [ ! -f /etc/cron.d/arkbackup ]; then
     echo "$CRON_AUTO_BACKUP steam bash -l -c 'arkmanager backup >> /ark/log/ark-backup.log 2>&1'" > /etc/cron.d/arkbackup
 fi
 log "###########################################################################"
+
+# Add bash complete for arkmanager
+# cp /home/steam/arkmanager-complete.bash /etc/bash_completion.d/
+# source /home/steam/arkmanager-complete.bash
 
 ########################
 #

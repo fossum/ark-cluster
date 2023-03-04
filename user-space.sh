@@ -11,6 +11,9 @@ function verify_dir {
     fi
 }
 
+# Add bash complete for arkmanager
+source /etc/bash_completion.d/arkmanager-completion.bash
+
 # Create custom config if not set, use custom config
 if [ ! -f /ark/arkmanager.cfg ]; then
     cp /etc/arkmanager/instances/main.cfg /ark/arkmanager.cfg || warn "Could not save default config file."
@@ -21,7 +24,7 @@ if [ ! -f /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer  ] || [ ! -f 
     warn "No game files found. Installing..."
     arkmanager install || error "Could not install game files."
 else
-    if [ ${BACKUPONSTART} -eq 1 ] && [ "$(ls -A /ark/server/ShooterGame/Saved/SavedArks/)" ]; then
+    if [ ${BACKUP_ON_STOP} -eq 1 ] && [ "$(ls -A /ark/server/ShooterGame/Saved/SavedArks/)" ]; then
         log "Creating Backup ..."
         arkmanager backup || warn "Could not create backup."
     fi
@@ -31,9 +34,14 @@ log "###########################################################################
 log "Installing Mods ..."
 arkmanager installmods || error "Could not install mods."
 
+if [ "${BACKUP_TO_LOAD}" != "" ]; then
+    log "Restoring from backup..."
+    arkmanager restore "/ark/${BACKUP_TO_LOAD}"
+fi
+
 log "###########################################################################"
 log "Launching ark server ..."
-if [ ${UPDATEONSTART} -eq 1 ]; then
+if [ ${UPDATE_ON_START} -eq 1 ]; then
     arkmanager start || error "Could not start server."
 else
     arkmanager start -noautoupdate || error "Could not start server."

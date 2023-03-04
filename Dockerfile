@@ -21,7 +21,7 @@ ENV CRON_AUTO_UPDATE="0 */3 * * *" \
     GROUP_ID=1000 \
     TZ=UTC \
     MAX_BACKUP_SIZE=500 \
-    SERVERMAP="TheIsland" \
+    SERVER_MAP="TheIsland" \
     SESSION_NAME="ARK Cluster" \
     MAX_PLAYERS=20 \
     RCON_ENABLE="True" \
@@ -36,7 +36,8 @@ ENV CRON_AUTO_UPDATE="0 */3 * * *" \
     CLUSTER_ID="" \
     KILL_PROCESS_TIMEOUT=300 \
     KILL_ALL_PROCESSES_TIMEOUT=300 \
-    TOOLS_GIT_REF=""
+    TOOLS_GIT_REF="" \
+    ARK_SERVER_VOLUME="/ark"
 
 # Install Ark Server Tools
 # Get tag version or master.
@@ -70,6 +71,7 @@ COPY run.sh /run.sh
 RUN chmod +x /run.sh
 COPY user-space.sh /user-space.sh
 RUN chmod +x /user-space.sh
+COPY arkmanager-completion.bash /etc/bash_completion.d/arkmanager-completion.bash
 
 # Skip expose, not all servers will use the same ports.
 VOLUME /ark /cluster
